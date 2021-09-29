@@ -82,7 +82,9 @@ func (c *Client) AddRadius(r RadiusServer, placeBefore string) (string, error) {
 	parts := make([]string, 0, 10)
 	parts = append(parts, "/radius/add")
 	parts = append(parts, fmt.Sprintf("=address=%s", r.Address))
-	parts = append(parts, fmt.Sprintf("=protocol=%s", r.Protocol))
+	if r.Protocol != "udp" {
+		parts = append(parts, fmt.Sprintf("=protocol=%s", r.Protocol))
+	}
 	if len(r.CalledId) > 0 {
 		parts = append(parts, fmt.Sprintf("=called-id=%s", r.CalledId))
 	}
