@@ -355,3 +355,13 @@ type PackageUpdate struct {
 	Latest    string `json:"latest"`
 	Status    string `json:"status"`
 }
+
+type User struct {
+	ID        string `tik:".id"`
+	Disabled  bool   `tik:"disabled"`
+	Name      string `tik:"name"`
+	Group     string `tik:"group"`
+	Address   string `tik:"address"`
+	Comment   string `tik:"comment"`
+	LastLogin string `tik:"last-logged-in"`
+}

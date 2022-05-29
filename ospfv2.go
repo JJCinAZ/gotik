@@ -4,6 +4,7 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type OSPF2LSA struct {
@@ -30,6 +31,7 @@ type LSARouterLink struct {
 	Type   string
 	Id     string
 	Data   string
+	Mask   int // if Type is stub, then data is a mask
 	Metric int
 }
 
@@ -102,6 +104,37 @@ func parsev2lsa(props map[string]string) OSPF2LSA {
 		}
 		entry.Data = x
 	case "router":
+		var x LSARouter
+		x.Links = make([]LSARouterLink, 0)
+		reFlags := regexp.MustCompile(`flags=([A-Za-z|]+)`)
+		reDataOld := regexp.MustCompile(`link-type=(\S+)\s+id=(\S+)\s+data=(\S+)\s+metric=(\d+)`)
+		reDataNew := regexp.MustCompile(`(\S+)\s+(\S+)\s+(\S+)\s+(\d+)`)
+		for _, line := range strings.Split(entry.Body, "\n") {
+			if m := reFlags.FindStringSubmatch(line); m != nil {
+				x.Flags = m[1]
+			} else if m := reDataOld.FindStringSubmatch(line); m != nil {
+				var l LSARouterLink
+				l.Type = m[1]
+				l.Id = m[2]
+				l.Data = m[3]
+				l.Metric, _ = strconv.Atoi(m[4])
+				if l.Type == "Stub" {
+					l.Mask = parseNetworkMaskToBits(l.Data)
+				}
+				x.Links = append(x.Links, l)
+			} else if m := reDataNew.FindStringSubmatch(line); m != nil {
+				var l LSARouterLink
+				l.Type = m[1]
+				l.Id = m[2]
+				l.Data = m[3]
+				l.Metric, _ = strconv.Atoi(m[4])
+				if l.Type == "Stub" {
+					l.Mask = parseNetworkMaskToBits(l.Data)
+				}
+				x.Links = append(x.Links, l)
+			}
+		}
+		entry.Data = x
 	}
 	return entry
 }
