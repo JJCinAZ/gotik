@@ -78,28 +78,26 @@ UPDATE:
 	return "", err
 }
 
-/*
-// Remove a PPP Secret by Name
-func (c *Client) RemovePPPSecretByName(name string) error {
+// Remove a User by Name
+func (c *Client) RemoveUserByName(name string) error {
 	var (
-		existing PPPSecret
+		existing User
 		err      error
 	)
-	if existing, err = c.GetPPPSecretByName(name); err == nil {
+	if existing, err = c.GetUserByName(name); err == nil {
 		return c.RemovePPPSecret(existing.ID)
 	}
 	return err
 }
 
-// Remove a PPP Secret.
-func (c *Client) RemovePPPSecret(id string) error {
+// Remove a User by ID
+func (c *Client) RemoveUser(id string) error {
 	if len(id) == 0 {
 		return fmt.Errorf("missing ID")
 	}
-	_, err := c.Run("/ppp/secret/remove", "=.id="+id)
+	_, err := c.Run("/user/remove", "=.id="+id)
 	return err
 }
-*/
 
 // UpdateUser updates an existing user.  ID must be valid.
 func (c *Client) UpdateUser(user User) (string, error) {
