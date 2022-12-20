@@ -49,8 +49,17 @@ func (c *Client) GetIDS(in interface{}) ([]string, string, error) {
 	}
 }
 
-// commits a rule using the router conn
-// can commit any rule listed in types
+// CommitRule will execute a rule using any struct type which includes a RouterLocation
+// member (IPv4FilterRule, IPv4NatRule, etc.)  Call the function with a pointer to the
+// struct: c.CommitRule(&someRule).
+// The struct member PlaceBeforePosition can be used to place the rule in one of these locations:
+//    return  --> Place before any final return in the chain.  There can only be one action=return
+//                in the chain for this to work.
+//    top     --> Place at the top of the chain.
+//    "comment" --> Place before the rule with the specified comment. There can only be one rule with that comment.
+// If PlaceBeforePosition is blank/empty, then the rule will be placed at the bottom of the chain or before
+// the rule ID specified by the PlaceBefore member.  Thus to put a rule before a specific ID, set PlaceBeforePosition
+// to empty string and PlaceBefore to the ID of the rule you want to place before.
 func (c *Client) CommitRule(in interface{}) error {
 	// check for matching rule
 	ids, location, err := c.GetIDS(in)
@@ -112,6 +121,7 @@ func (c *Client) CommitRule(in interface{}) error {
 						// place before first returned rule
 						placeBefore.SetString(detail.Re[0].Map[".id"])
 					case len(input.(string)) > 0:
+						// assume this is a comment to search for
 						// get the id of the specified rule based on comment string match
 						id := []string{
 							location + "/print",
@@ -150,8 +160,9 @@ func (c *Client) CommitRule(in interface{}) error {
 	return nil
 }
 
-// removes a rule using the router conn
-// can remove any rule listed in types
+// RemoveRule will remove a rule using any struct type which includes a RouterLocation
+// member (IPv4FilterRule, IPv4NatRule, etc.)  Call the function with a pointer to the
+// struct: c.RemoveRule(&someRule) to remove the rule which exactly matches that given.
 func (c *Client) RemoveRule(in interface{}) error {
 	// check for matching rule
 	ids, location, err := c.GetIDS(in)

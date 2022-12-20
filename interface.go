@@ -176,6 +176,8 @@ func parseInterface(props map[string]string, intfType string) Interface {
 		Running:   parseBool(props["running"]),
 		Arp:       props["arp"],
 		AutoNeg:   parseBool(props["auto-negotiation"]),
+		MTU:       parseInt(props["mtu"]),
+		ActualMTU: parseInt(props["actual-mtu"]),
 	}
 	if intf.Type, found = props["type"]; !found {
 		intf.Type = intfType
@@ -199,6 +201,11 @@ func parseInterface(props map[string]string, intfType string) Interface {
 		intf.AgingTime = props["ageing-time"]
 		intf.VlanFiltering = parseBool(props["vlan-filtering"])
 		intf.FastForward = parseBool(props["fast-forward"])
+	case InterfaceTypeGre:
+		intf.LocalAddress = props["local-address"]
+		intf.RemoteAddress = props["remote-address"]
+		intf.KeepAlive = props["keepalive"]
+		intf.IPSecSecret = props["ipsec-secret"]
 	}
 	return intf
 }

@@ -53,8 +53,8 @@ const (
 	InterfaceTypeEoip            = "eoip"
 	InterfaceTypeEoipv6          = "eoipv6"
 	InterfaceTypeEthernet        = "ether"
-	InterfaceTypeGre             = "gre"
-	InterfaceTypeGre6            = "gre6"
+	InterfaceTypeGre             = "gre-tunnel"
+	InterfaceTypeGre6            = "gre6-tunnel"
 	InterfaceTypeIpip            = "ipip"
 	InterfaceTypeIpipv6          = "ipipv6"
 	InterfaceTypeL2tpClient      = "l2tp-client"
@@ -104,6 +104,12 @@ type Interface struct {
 	AgingTime     string `json:"agingtime"`
 	VlanFiltering bool   `json:"vlanfiltering"`
 	FastForward   bool   `json:"fastforward"`
+	MTU           int    `json:"mtu"`
+	ActualMTU     int    `json:"actualmtu"`
+	LocalAddress  string `json:"localaddress"`
+	RemoteAddress string `json:"remoteaddress"`
+	KeepAlive     string `json:"keepalive"`
+	IPSecSecret   string `json:"ipsec-secret"`
 }
 
 type EthernetStatus struct {

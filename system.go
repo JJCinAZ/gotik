@@ -32,6 +32,12 @@ type Resources struct {
 	Platform         string        `json:"platform"`
 }
 
+type License struct {
+	SoftwareId string `json:"software-id"`
+	Level      int    `json:"nlevel"`
+	Features   string `json:"features"`
+}
+
 func parseResources(props map[string]string) Resources {
 	entry := Resources{
 		Uptime:           parseDuration(props["uptime"]),
@@ -90,6 +96,24 @@ func (c *Client) GetSystemId() (string, error) {
 		return name, nil
 	}
 	return "", err
+}
+
+func parseLicense(props map[string]string) License {
+	entry := License{
+		SoftwareId: props["softwareid"],
+		Level:      parseInt(props["nlevel"]),
+		Features:   props["features"],
+	}
+	return entry
+}
+
+func (c *Client) GetSystemLicense() (License, error) {
+	detail, err := c.RunCmd("/system/license/print")
+	if err == nil {
+		r := parseLicense(detail.Re[0].Map)
+		return r, nil
+	}
+	return License{}, err
 }
 
 func (c *Client) CreateExport(targetname string, minFreeSpace int) error {

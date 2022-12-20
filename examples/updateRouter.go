@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jjcinaz/gotik"
 	scp "github.com/bramvdbogaerde/go-scp"
 	"github.com/bramvdbogaerde/go-scp/auth"
+	"github.com/jjcinaz/gotik"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -63,12 +63,12 @@ func main() {
 
 func doUpgrade(rtr, user, pass string, configpath string, nobackup bool, mode string, channel string) (string, bool) {
 	var (
-		routerConn *routeros.Client
+		routerConn *gotik.Client
 		err        error
-		info       routeros.PackageUpdate
+		info       gotik.PackageUpdate
 		id         string
 	)
-	routerConn, err = routeros.DialTimeout(rtr, user, pass, time.Second*5)
+	routerConn, err = gotik.DialTimeout(rtr, user, pass, time.Second*5)
 	if err != nil {
 		log.Printf("%s: unable to connect to router: %s", rtr, err)
 		return id, false
@@ -120,7 +120,7 @@ func doUpgrade(rtr, user, pass string, configpath string, nobackup bool, mode st
 	return id, true
 }
 
-func enableSSH(routerConn *routeros.Client) error {
+func enableSSH(routerConn *gotik.Client) error {
 	list, err := routerConn.GetIPServices()
 	if err != nil {
 		return err

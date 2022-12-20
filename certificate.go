@@ -81,9 +81,9 @@ func parseCertImportResults(props map[string]string) CertImportResults {
 	return entry
 }
 
-func (c *Client) CertificateImport(filename, passphrase string) (CertImportResults, error) {
+func (c *Client) CertificateImport(name, filename, passphrase string) (CertImportResults, error) {
 	var r CertImportResults
-	detail, err := c.RunCmd("/certificate/import", "?file-name="+filename, "?passphrase="+passphrase)
+	detail, err := c.RunCmd("/certificate/import", "=file-name="+filename, "=passphrase="+passphrase, "=name="+name)
 	if err == nil {
 		r = parseCertImportResults(detail.Re[0].Map)
 	}
@@ -99,6 +99,11 @@ func (c *Client) certPrint(parms ...string) ([]Certificate, error) {
 		}
 	}
 	return entries, nil
+}
+
+func (c *Client) SetCertificateName(id string, name string) error {
+	_, err := c.Run("/certificate/set", "=.id="+id, "=name="+name)
+	return err
 }
 
 func (c *Client) GetCertificates() ([]Certificate, error) {

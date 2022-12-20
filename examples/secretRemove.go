@@ -11,13 +11,13 @@ import (
 
 func main() {
 	var (
-		routerConn *routeros.Client
+		routerConn *gotik.Client
 		err        error
 	)
 	tls := tls2.Config{
 		InsecureSkipVerify: true,
 	}
-	routerConn, err = routeros.DialTLSTimeout(os.Args[1], os.Args[2], os.Args[3], &tls, time.Second*10)
+	routerConn, err = gotik.DialTLSTimeout(os.Args[1], os.Args[2], os.Args[3], &tls, time.Second*10)
 	if err != nil {
 		log.Printf("unable to connect to router: %s", err)
 		return
