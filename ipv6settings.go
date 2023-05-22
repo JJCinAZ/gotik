@@ -22,7 +22,7 @@ func parsev6Settings(props map[string]string) IPv6Settings {
 }
 
 // GetIPv6Settings returns the current IPv6 settings
-func (c *Client) GetIPv6Settings(baseIntf string) (settings IPv6Settings, err error) {
+func (c *Client) GetIPv6Settings() (settings IPv6Settings, err error) {
 	var detail *Reply
 	if detail, err = c.Run("/ipv6/settings/print"); err != nil {
 		return
