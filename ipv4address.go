@@ -42,17 +42,17 @@ func (c *Client) ipAddressPrint(parms ...string) ([]IPv4Address, error) {
 	return entries, nil
 }
 
-// Returns a list of all IPv4 addresses on a particular interface
+// GetInterfaceIPv4Table returns a list of all IPv4 addresses on a particular interface
 func (c *Client) GetInterfaceIPv4Table(baseIntf string) ([]IPv4Address, error) {
 	return c.ipAddressPrint("?=interface=" + baseIntf)
 }
 
-// Returns a list of all IPv4 addresses on the router
+// GetIPv4Table returns a list of all IPv4 addresses on the router
 func (c *Client) GetIPv4Table() ([]IPv4Address, error) {
 	return c.ipAddressPrint()
 }
 
-// Add a new IPv4 Address
+// AddIPv4Address adds a new IPv4 Address
 func (c *Client) AddIPv4Address(addr IPv4Address) (string, error) {
 	if len(addr.Address) == 0 || len(addr.Interface) == 0 {
 		return "", fmt.Errorf("invalid IPv4 address supplied")
@@ -72,7 +72,7 @@ func (c *Client) AddIPv4Address(addr IPv4Address) (string, error) {
 	return "", err
 }
 
-// change specified property of an address
+// ModifyIPv4Address changes the specified property of an address
 func (c *Client) ModifyIPv4Address(id string, action string) error {
 	switch action {
 	case "enable":

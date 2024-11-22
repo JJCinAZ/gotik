@@ -34,7 +34,7 @@ func parseScript(props map[string]string) Script {
 	return entry
 }
 
-// Returns a list of all scripts
+// GetScripts returns a list of all scripts
 func (c *Client) GetScripts() ([]Script, error) {
 	entries := make([]Script, 0, 8)
 	detail, err := c.RunCmd("/system/script/print")
@@ -46,7 +46,7 @@ func (c *Client) GetScripts() ([]Script, error) {
 	return entries, nil
 }
 
-// Add a new Script
+// AddScript adds a new Script
 func (c *Client) AddScript(s Script) (string, error) {
 	if len(s.Name) == 0 {
 		return "", fmt.Errorf("invalid name supplied")
@@ -73,7 +73,8 @@ func (c *Client) RemoveScript(id string) error {
 	return nil
 }
 
-// Update a Script.
+// UpdateScript updates an existing Script.  It will error if the ID or Name are missing or if the
+// existing script is not found.
 func (c *Client) UpdateScript(s Script) (string, error) {
 	if len(s.ID) == 0 {
 		return "", fmt.Errorf("missing ID")

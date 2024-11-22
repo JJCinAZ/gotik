@@ -1,11 +1,12 @@
 package gotik
 
 import (
+	"errors"
 	"fmt"
 )
 
 func parseUser(props map[string]string) User {
-	entry := User{
+	return User{
 		ID:        props[".id"],
 		Name:      props["name"],
 		Group:     props["group"],
@@ -14,7 +15,6 @@ func parseUser(props map[string]string) User {
 		LastLogin: props["last-logged-in"],
 		Address:   props["address"],
 	}
-	return entry
 }
 
 func (c *Client) userPrint(parms ...string) ([]User, error) {
@@ -30,7 +30,7 @@ func (c *Client) userPrint(parms ...string) ([]User, error) {
 	return entries, err
 }
 
-// Returns a User by name
+// GetUserByName returns a User by name
 func (c *Client) GetUserByName(name string) (User, error) {
 	a, err := c.userPrint("?name=" + name)
 	if err == nil {
@@ -42,12 +42,12 @@ func (c *Client) GetUserByName(name string) (User, error) {
 	return User{}, err
 }
 
-// Returns all Users
+// GetUsers returns all Users on the device
 func (c *Client) GetUsers() ([]User, error) {
 	return c.userPrint()
 }
 
-// Add or update a User.
+// AddUser will add or update a User.
 // If a user with the same name already exists, it will be updated.
 // Password will not be set for user
 func (c *Client) AddUser(user User) (string, error) {
@@ -61,7 +61,8 @@ func (c *Client) AddUser(user User) (string, error) {
 	if err == nil {
 		return reply.Done.Map["ret"], nil
 	}
-	if apiErr, okay := err.(*DeviceError); okay {
+	var apiErr *DeviceError
+	if errors.As(err, &apiErr) {
 		if msg, found := apiErr.Sentence.Map["message"]; found {
 			if msg == "failure: user with the same name already exists" {
 				goto UPDATE
@@ -78,7 +79,7 @@ UPDATE:
 	return "", err
 }
 
-// Remove a User by Name
+// RemoveUserByName removes a User by Name.  If user doesn't exist an error will be returned.
 func (c *Client) RemoveUserByName(name string) error {
 	var (
 		existing User
@@ -90,7 +91,7 @@ func (c *Client) RemoveUserByName(name string) error {
 	return err
 }
 
-// Remove a User by ID
+// RemoveUser removes a User by ID
 func (c *Client) RemoveUser(id string) error {
 	if len(id) == 0 {
 		return fmt.Errorf("missing ID")

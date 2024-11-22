@@ -2,7 +2,7 @@ package gotik
 
 import "errors"
 
-// get the neighbor discovery interface id by interface
+// GetNeighborInterface gets the neighbor discovery interface id by interface
 func (c *Client) GetNeighborInterface(iface string) (NeighborInterface, error) {
 	// get id of neighbor interface
 	detail, err := c.Run("/ip/neighbor/discovery/print", "?name="+iface)
@@ -21,7 +21,7 @@ func (c *Client) GetNeighborInterface(iface string) (NeighborInterface, error) {
 	}
 }
 
-// enable or disable the neighbor discovery interface
+// ModifyNeighbor can be used to enable or disable the neighbor discovery interface
 func (c *Client) ModifyNeighbor(id string, action string) error {
 	var disabled string
 

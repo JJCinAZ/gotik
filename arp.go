@@ -7,15 +7,15 @@ import (
 	"strings"
 )
 
-var regexpESNSeparated = regexp.MustCompile(`^([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})$`)
+var regexpMacAddressSeparated = regexp.MustCompile(`^([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})[:\-]?([[:xdigit:]]{2})$`)
 
-// Will take a MAC address in one of the formats: ############, ##-##-##-##-##-## or ##:##:##:##:##:##
+// NormalizeMac will take a MAC address in one of the formats: ############, ##-##-##-##-##-## or ##:##:##:##:##:##
 // and will return it normalized to upper case with the specified separator.
-func NormalizeESN(s string, separator string) (string, error) {
-	if m := regexpESNSeparated.FindStringSubmatch(strings.ToUpper(strings.TrimSpace(s))); m != nil && len(m) == 7 {
+func NormalizeMac(s string, separator string) (string, error) {
+	if m := regexpMacAddressSeparated.FindStringSubmatch(strings.ToUpper(strings.TrimSpace(s))); m != nil && len(m) == 7 {
 		return strings.Join(m[1:], separator), nil
 	}
-	return "", fmt.Errorf("Invalid format for ESN '%-1.20s'", s)
+	return "", fmt.Errorf("invalid format for MAC address '%-1.20s'", s)
 }
 
 func parseArp(props map[string]string) ArpEntry {
@@ -44,17 +44,17 @@ func (c *Client) ipArpPrint(parms ...string) ([]ArpEntry, error) {
 	return entries, nil
 }
 
-// Returns a list of all ARP entries on a particular interface
+// GetInterfaceArpTable returns a list of all ARP entries on a particular interface
 func (c *Client) GetInterfaceArpTable(baseIntf string) ([]ArpEntry, error) {
 	return c.ipArpPrint("?=interface=" + baseIntf)
 }
 
-// Returns a list of all ARP entries
+// GetArpTable returns a list of all ARP entries
 func (c *Client) GetArpTable() ([]ArpEntry, error) {
 	return c.ipArpPrint()
 }
 
-// Returns any entry for a particular IP address
+// ArpLookupByIP returns any entry for a particular IP address
 func (c *Client) ArpLookupByIP(ipv4 string) (entry ArpEntry, err error) {
 	if len(net.ParseIP(ipv4).To4()) != net.IPv4len {
 		err = fmt.Errorf("Invalid IPv4 address")
@@ -72,10 +72,10 @@ func (c *Client) ArpLookupByIP(ipv4 string) (entry ArpEntry, err error) {
 	return
 }
 
-// Returns any entry for a particular MAC address
+// ArpLookupByMAC returns any entry for a particular MAC address
 func (c *Client) ArpLookupByMAC(mac string) (entry ArpEntry, err error) {
 	var target string
-	target, err = NormalizeESN(mac, ":")
+	target, err = NormalizeMac(mac, ":")
 	detail, err := c.Run("/ip/arp/print", "?=disabled=false", "?=mac-address="+target)
 	if err != nil {
 		return
