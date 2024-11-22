@@ -55,7 +55,7 @@ func parseRadius(props map[string]string) RadiusServer {
 	return entry
 }
 
-// Returns a list of all radius services
+// GetRadius returns a list of all radius services
 func (c *Client) GetRadius() ([]RadiusServer, error) {
 	entries := make([]RadiusServer, 0, 8)
 	detail, err := c.RunCmd("/radius/print")
@@ -67,7 +67,7 @@ func (c *Client) GetRadius() ([]RadiusServer, error) {
 	return entries, nil
 }
 
-// Add a new Radius service
+// AddRadius adds a new Radius service
 // placeBefore should be empty to just append, else this should be the ID of the entry to which to place this one before
 func (c *Client) AddRadius(r RadiusServer, placeBefore string) (string, error) {
 	if len(r.Address) == 0 {

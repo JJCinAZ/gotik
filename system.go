@@ -68,7 +68,7 @@ func (c *Client) GetSystemResources() (Resources, error) {
 }
 
 func parseRouterboard(props map[string]string) Routerboard {
-	entry := Routerboard{
+	return Routerboard{
 		Routerboard:     parseBool(props["routerboard"]),
 		Model:           props["model"],
 		SerialNumber:    props["serial-number"],
@@ -77,7 +77,6 @@ func parseRouterboard(props map[string]string) Routerboard {
 		CurrentFirmware: props["current-firmware"],
 		UpgradeFirmware: props["upgrade-firmware"],
 	}
-	return entry
 }
 
 func (c *Client) GetSystemRouterboard() (Routerboard, error) {

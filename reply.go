@@ -16,9 +16,9 @@ type Reply struct {
 func (r *Reply) String() string {
 	b := &bytes.Buffer{}
 	for _, re := range r.Re {
-		fmt.Fprintf(b, "%s\n", re)
+		_, _ = fmt.Fprintf(b, "%s\n", re)
 	}
-	fmt.Fprintf(b, "%s", r.Done)
+	_, _ = fmt.Fprintf(b, "%s", r.Done)
 	return b.String()
 }
 
@@ -27,11 +27,16 @@ func (c *Client) readReply() (*Reply, error) {
 	var lastErr error
 	r := &Reply{}
 	for {
-		sen, err := c.r.ReadSentence()
+		var (
+			err  error
+			sen  *proto.Sentence
+			done bool
+		)
+		sen, err = c.r.ReadSentence()
 		if err != nil {
 			return nil, err
 		}
-		done, err := r.processSentence(sen)
+		done, err = r.processSentence(sen)
 		if err != nil {
 			lastErr = err
 		}

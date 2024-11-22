@@ -1,6 +1,3 @@
-/*
-package gotik is a pure Go client library for accessing Mikrotik devices using the RouterOS API.
-*/
 package gotik
 
 import (
@@ -65,52 +62,72 @@ func fqRouterIP(ip string, useTLS bool) string {
 
 // Dial connects and logs in to a RouterOS device.
 func Dial(address, username, password string) (*Client, error) {
-	conn, err := net.Dial("tcp", fqRouterIP(address, false))
+	var (
+		conn net.Conn
+		c    *Client
+		err  error
+	)
+	conn, err = net.Dial("tcp", fqRouterIP(address, false))
 	if err != nil {
 		return nil, err
 	}
-	c, err := newClientAndLogin(conn, username, password, false)
+	c, err = newClientAndLogin(conn, username, password, false)
 	if err == nil {
 		c.serverName = address
 	}
 	return c, err
 }
 
-// Dial connects and logs in to a RouterOS device.
+// DialTimeout connects to and logs in to a RouterOS device.
 func DialTimeout(address, username, password string, timeout time.Duration) (*Client, error) {
-	conn, err := net.DialTimeout("tcp", fqRouterIP(address, false), timeout)
+	var (
+		conn net.Conn
+		c    *Client
+		err  error
+	)
+	conn, err = net.DialTimeout("tcp", fqRouterIP(address, false), timeout)
 	if err != nil {
 		return nil, err
 	}
-	c, err := newClientAndLogin(conn, username, password, false)
+	c, err = newClientAndLogin(conn, username, password, false)
 	if err == nil {
 		c.serverName = address
 	}
 	return c, err
 }
 
-// DialTLS connects and logs in to a RouterOS device using TLS.
+// DialTLS connects to and logs in to a RouterOS device using TLS.
 func DialTLS(address, username, password string, tlsConfig *tls.Config) (*Client, error) {
-	conn, err := tls.Dial("tcp", fqRouterIP(address, true), tlsConfig)
+	var (
+		conn net.Conn
+		c    *Client
+		err  error
+	)
+	conn, err = tls.Dial("tcp", fqRouterIP(address, true), tlsConfig)
 	if err != nil {
 		return nil, err
 	}
-	c, err := newClientAndLogin(conn, username, password, true)
+	c, err = newClientAndLogin(conn, username, password, true)
 	if err == nil {
 		c.serverName = address
 	}
 	return c, err
 }
 
-// DialTLSTimeout connects and logs in to a RouterOS device using TLS.
+// DialTLSTimeout connects to and logs in to a RouterOS device using TLS with an optional timeout
 func DialTLSTimeout(address, username, password string, tlsConfig *tls.Config, timeout time.Duration) (*Client, error) {
+	var (
+		conn net.Conn
+		c    *Client
+		err  error
+	)
 	d := new(net.Dialer)
 	d.Timeout = timeout
-	conn, err := tls.DialWithDialer(d, "tcp", fqRouterIP(address, true), tlsConfig)
+	conn, err = tls.DialWithDialer(d, "tcp", fqRouterIP(address, true), tlsConfig)
 	if err != nil {
 		return nil, err
 	}
-	c, err := newClientAndLogin(conn, username, password, true)
+	c, err = newClientAndLogin(conn, username, password, true)
 	if err == nil {
 		c.serverName = address
 	}
@@ -120,7 +137,7 @@ func DialTLSTimeout(address, username, password string, tlsConfig *tls.Config, t
 func newClientAndLogin(rwc io.ReadWriteCloser, username, password string, isTLS bool) (*Client, error) {
 	c, err := NewClient(rwc)
 	if err != nil {
-		rwc.Close()
+		_ = rwc.Close()
 		return nil, err
 	}
 	c.isTLS = isTLS
@@ -149,7 +166,7 @@ func (c *Client) Close() {
 	}
 	c.closing = true
 	c.mu.Unlock()
-	c.rwc.Close()
+	_ = c.rwc.Close()
 }
 
 // Login runs the /login command. Dial and DialTLS call this automatically.
@@ -157,6 +174,7 @@ func (c *Client) Login(username, password string) error {
 	var (
 		r   *Reply
 		err error
+		b   []byte
 	)
 	if c.isTLS || c.useInsecureCleartext {
 		// RouterOS post v6.43 has new authentication method and wants the login/pass (in cleartext) on
@@ -173,7 +191,7 @@ func (c *Client) Login(username, password string) error {
 		// if we didn't get a =ret= in the response, then we assume it's a new login method (post 6.45.1)
 		return nil
 	}
-	b, err := hex.DecodeString(ret)
+	b, err = hex.DecodeString(ret)
 	if err != nil {
 		return fmt.Errorf("RouterOS: /login: invalid ret (challenge) hex string received: %s", err)
 	}
@@ -189,7 +207,7 @@ func (c *Client) Login(username, password string) error {
 func (c *Client) challengeResponse(cha []byte, password string) string {
 	h := md5.New()
 	h.Write([]byte{0})
-	io.WriteString(h, password)
+	_, _ = io.WriteString(h, password)
 	h.Write(cha)
 	return fmt.Sprintf("00%x", h.Sum(nil))
 }

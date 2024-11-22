@@ -2,10 +2,10 @@ package gotik_test
 
 import (
 	"fmt"
+	"github.com/jjcinaz/gotik"
 	"io"
 	"testing"
 
-	"github.com/jjcinaz/gotik"
 	"github.com/jjcinaz/gotik/proto"
 )
 
@@ -402,11 +402,11 @@ func (c *conn) Close() error {
 	return nil
 }
 
-func newPair(t *testing.T) (*routeros.Client, *fakeServer) {
+func newPair(t *testing.T) (*gotik.Client, *fakeServer) {
 	ar, aw := io.Pipe()
 	br, bw := io.Pipe()
 
-	c, err := routeros.NewClient(&conn{ar, bw})
+	c, err := gotik.NewClient(&conn{ar, bw})
 	if err != nil {
 		t.Fatal(err)
 	}
