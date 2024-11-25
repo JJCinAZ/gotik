@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -28,6 +30,11 @@ type Client struct {
 	nextTag              int64
 	tags                 map[string]sentenceProcessor
 	mu                   sync.Mutex
+	cachedResources      Resources // cached at initial login
+	majorVersion         int
+	minorVersion         int
+	minor2Version        int
+	buildChannel         string
 }
 
 // NewClient returns a new Client over rwc. Login must be called.
@@ -147,7 +154,43 @@ func newClientAndLogin(rwc io.ReadWriteCloser, username, password string, isTLS 
 		c.Close()
 		return nil, err
 	}
+	// Note that it's possible that the user doesn't have permissions to be able to run /system/resource/print
+	// But that's not likely
+	c.cachedResources, err = c.GetSystemResources()
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+	c.cacheVersions()
 	return c, nil
+}
+
+func (c *Client) cacheVersions() {
+	var versionRegx = regexp.MustCompile(`^(\d+)\.(\d+)(?:\.(\d+))?( \([a-zA-Z0-9_-]+\))?`)
+	matches := versionRegx.FindStringSubmatch(c.cachedResources.Version)
+	if len(matches) < 5 {
+		return
+	}
+	major, _ := strconv.ParseInt(matches[1], 10, 64)
+	minor, _ := strconv.ParseInt(matches[2], 10, 64)
+	var minor2 int64
+	if len(matches[3]) > 0 {
+		minor2, _ = strconv.ParseInt(matches[3], 10, 64)
+	}
+	c.majorVersion = int(major)
+	c.minorVersion = int(minor)
+	c.minor2Version = int(minor2)
+	c.buildChannel = matches[4]
+}
+
+// CurrentVersion returns the RouterOS version of the connected device in two forms:
+// 1. The full version string
+// 2. The major version as an integer
+// 3. The first minor version as an integer
+// 4. The second minor version as an integer
+// For example: "6.45.1 (stable)" returns "6.45.1", 6, 45, 1
+func (c *Client) CurrentVersion() (string, int, int, int) {
+	return c.cachedResources.Version, c.majorVersion, c.minorVersion, c.minor2Version
 }
 
 // CurrentAddress returned the DNS name or IP address of the router to which this client is working against

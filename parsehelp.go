@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	reRosId       = regexp.MustCompile(`(?i)^\*[0-9A-F]{1,8}$`)
-	reRosDuration = regexp.MustCompile(`(\d+)([wdhms])`)
+	reRosId         = regexp.MustCompile(`(?i)^\*[0-9A-F]{1,8}$`)
+	reRosDuration   = regexp.MustCompile(`([+-]?\d+)([wdhmsun]{1,2})`)
+	reRosTimeOffset = regexp.MustCompile(`([0-9.]+) ([wdhmsun]{1,2})`)
 )
 
 func isRosId(s string) bool {
@@ -88,30 +89,70 @@ func parseFloat32(s string) float32 {
 }
 
 func parseDuration(s string) time.Duration {
-	secs := uint64(0)
+	var (
+		nsecs  time.Duration
+		negSet time.Duration
+	)
+	if len(s) == 0 {
+		return nsecs
+	}
+	negSet = 1
+	if s[0] == '+' {
+		s = s[1:]
+	} else if s[0] == '-' {
+		s = s[1:]
+		negSet = -1
+	}
+	if a := reRosTimeOffset.FindStringSubmatch(s); a != nil {
+		n, err := strconv.ParseFloat(a[1], 64)
+		if err != nil {
+			return nsecs
+		}
+		switch a[2] {
+		case "h":
+			nsecs += 3600 * time.Second
+		case "m":
+			nsecs += 60 * time.Second
+		case "s":
+			nsecs += time.Second
+		case "ms":
+			nsecs += time.Millisecond
+		case "us":
+			nsecs += time.Microsecond
+		case "ns":
+			nsecs += time.Nanosecond
+		}
+		return time.Duration(n*float64(nsecs)) * negSet
+	}
 	a := reRosDuration.FindAllStringSubmatch(s, -1)
 	if a != nil {
 		for _, m := range a {
 			// m[0] = "24w", m[1] = "24", m[2] = "w"
-			n, err := strconv.ParseUint(m[1], 10, 64)
+			n, err := strconv.ParseInt(m[1], 10, 64)
 			if err != nil {
 				break
 			}
 			switch m[2] {
 			case "w":
-				secs += n * 86400 * 7
+				nsecs += time.Duration(n) * 86400 * 7 * time.Second
 			case "d":
-				secs += n * 86400
+				nsecs += time.Duration(n) * 86400 * time.Second
 			case "h":
-				secs += n * 3600
+				nsecs += time.Duration(n) * 3600 * time.Second
 			case "m":
-				secs += n * 60
+				nsecs += time.Duration(n) * 60 * time.Second
 			case "s":
-				secs += n
+				nsecs += time.Duration(n) * time.Second
+			case "ms":
+				nsecs += time.Duration(n) * time.Millisecond
+			case "us":
+				nsecs += time.Duration(n) * time.Microsecond
+			case "ns":
+				nsecs += time.Duration(n) * time.Nanosecond
 			}
 		}
 	}
-	return time.Duration(secs) * time.Second
+	return nsecs * negSet
 }
 
 func parseTikObject(props map[string]string, i interface{}) {

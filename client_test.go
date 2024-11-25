@@ -2,13 +2,14 @@ package gotik
 
 import (
 	"flag"
+	"os"
 	"testing"
 )
 
 var (
-	routerosAddress  = flag.String("routeros.address", "", "RouterOS address:port")
-	routerosUsername = flag.String("routeros.username", "admin", "RouterOS user name")
-	routerosPassword = flag.String("routeros.password", "admin", "RouterOS password")
+	routerosAddress  = flag.String("routeros.address", os.Getenv("RTR"), "RouterOS address:port")
+	routerosUsername = flag.String("routeros.username", os.Getenv("RTRUSER"), "RouterOS user name")
+	routerosPassword = flag.String("routeros.password", os.Getenv("RTRPASS"), "RouterOS password")
 )
 
 type liveTest struct {
