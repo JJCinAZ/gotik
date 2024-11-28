@@ -371,3 +371,30 @@ type User struct {
 	Comment   string `tik:"comment"`
 	LastLogin string `tik:"last-logged-in"`
 }
+
+type AAA struct {
+	Accounting    bool          `json:"accounting"`
+	UseRadius     bool          `json:"use_radius"`
+	InterimUpdate time.Duration `json:"interim_update"`
+	DefaultGroup  string        `json:"default_group"`
+	ExcludeGroups []string      `json:"exclude_groups"`
+}
+
+type RadiusServer struct {
+	ID                 string        `tik:".id" json:"id"`
+	AccountingBackup   bool          `tik:"accounting-backup" json:"accounting_backup"`
+	AccountingPort     int           `tik:"accounting-port" json:"accounting_port"`
+	Address            string        `tik:"address" json:"address"`
+	AuthenticationPort int           `tik:"authentication-port" json:"authentication_port"`
+	CalledId           string        `tik:"called-id" json:"called_id"`
+	Certificate        string        `tik:"certificate" json:"certificate"`
+	Comment            string        `tik:"comment" json:"comment"`
+	Disabled           bool          `tik:"disabled" json:"disabled"`
+	Domain             string        `tik:"domain" json:"domain"`
+	Protocol           string        `tik:"protocol" json:"protocol"`
+	Realm              string        `tik:"realm" json:"realm"`
+	Secret             string        `tik:"secret" json:"secret"`
+	Service            []string      `tik:"service" json:"service"`
+	SrcAddress         string        `tik:"src-address" json:"src_address"`
+	Timeout            time.Duration `tik:"timeout" json:"timeout"`
+}

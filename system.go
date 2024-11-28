@@ -16,20 +16,24 @@ type Routerboard struct {
 }
 
 type Resources struct {
-	Uptime           time.Duration `json:"uptime"`
-	Version          string        `json:"version"`
-	BuildTime        time.Time     `json:"build-time"`
-	FreeMemory       int           `json:"free-memory"`
-	TotalMemory      int           `json:"total-memory"`
-	CPU              string        `json:"cpu"`
-	CPUCount         int           `json:"cpu-count"`
-	CPUFrequency     int           `json:"cpu-frequency"` // in MHz
-	CPULoad          int           `json:"cpu-load"`
-	FreeHddSpace     int           `json:"free-hdd-space"`
-	TotalHddSpace    int           `json:"total-hdd-space"`
-	ArchitectureName string        `json:"architecture-name"`
-	BoardName        string        `json:"board-name"`
-	Platform         string        `json:"platform"`
+	Uptime               time.Duration `json:"uptime"`
+	Version              string        `json:"version"`
+	BuildTime            time.Time     `json:"build-time"`
+	FactorySoftware      string        `json:"factory-software"`
+	FreeMemory           int           `json:"free-memory"`
+	TotalMemory          int           `json:"total-memory"`
+	CPU                  string        `json:"cpu"`
+	CPUCount             int           `json:"cpu-count"`
+	CPUFrequency         int           `json:"cpu-frequency"` // in MHz
+	CPULoad              int           `json:"cpu-load"`
+	FreeHddSpace         int           `json:"free-hdd-space"`
+	TotalHddSpace        int           `json:"total-hdd-space"`
+	WriteSectSinceReboot int           `json:"write-sect-since-reboot"`
+	WriteSectTotal       int           `json:"write-sect-total"`
+	BadBlocks            int           `json:"bad-blocks"`
+	ArchitectureName     string        `json:"architecture-name"`
+	BoardName            string        `json:"board-name"`
+	Platform             string        `json:"platform"`
 }
 
 type License struct {
@@ -43,6 +47,7 @@ func parseResources(props map[string]string) Resources {
 		Uptime:           parseDuration(props["uptime"]),
 		Version:          props["version"],
 		BuildTime:        parseTime(props["build-time"]),
+		FactorySoftware:  props["factory-software"],
 		FreeMemory:       parseInt(props["free-memory"]),
 		TotalMemory:      parseInt(props["total-memory"]),
 		CPU:              props["cpu"],

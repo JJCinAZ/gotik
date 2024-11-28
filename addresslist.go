@@ -98,7 +98,7 @@ func (c *Client) AuditIPv6AddressList(listname string, list []AddressList, goodL
 	for k, v := range goodList {
 		targetList[strings.ToLower(k)] = v
 	}
-	return c.auditAddressList("/ipv6", listname, list, goodList, applyAudits)
+	return c.auditAddressList("/ipv6", listname, list, targetList, applyAudits)
 }
 
 func (c *Client) auditAddressList(cmdprefix string, listname string, list []AddressList, goodList map[string]string, applyAudits bool) ([]AddressListAudit, error) {

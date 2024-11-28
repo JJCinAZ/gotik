@@ -53,110 +53,125 @@ func (c *Client) GetIDS(in interface{}) ([]string, string, error) {
 // member (IPv4FilterRule, IPv4NatRule, etc.)  Call the function with a pointer to the
 // struct: c.CommitRule(&someRule).
 // The struct member PlaceBeforePosition can be used to place the rule in one of these locations:
-//    return  --> Place before any final return in the chain.  There can only be one action=return
-//                in the chain for this to work.
-//    top     --> Place at the top of the chain.
-//    "comment" --> Place before the rule with the specified comment. There can only be one rule with that comment.
+//
+//	return  --> Place before any final return in the chain.  There can only be one action=return
+//	            in the chain for this to work.
+//	top     --> Place at the top of the chain.
+//	"comment" --> Place before the rule with the specified comment. There can only be one rule with that comment.
+//
 // If PlaceBeforePosition is blank/empty, then the rule will be placed at the bottom of the chain or before
 // the rule ID specified by the PlaceBefore member.  Thus to put a rule before a specific ID, set PlaceBeforePosition
 // to empty string and PlaceBefore to the ID of the rule you want to place before.
 func (c *Client) CommitRule(in interface{}) error {
 	// check for matching rule
-	ids, location, err := c.GetIDS(in)
+	ids, _, err := c.GetIDS(in)
 	if err != nil {
 		return err
 	}
 
 	switch len(ids) {
 	case 0:
-		// get interface reflection information
-		s := reflect.ValueOf(in).Elem()
-		t := s.Type()
-
-		// iterate through all fields to find position
-		for i := 0; i < s.NumField(); i++ {
-			field := t.Field(i)
-			input := s.Field(i).Interface()
-
-			if field.Name == "PlaceBeforePosition" {
-				if len(input.(string)) > 0 {
-					// place before field holder for modification
-					placeBefore := s.FieldByName("PlaceBefore")
-
-					// get id to place before if a position is specified
-					switch {
-					case input.(string) == "return":
-						// get the chain field by name
-						chain, ok := t.FieldByName("Chain")
-						if !ok {
-							return errors.New("commitRule - no chain field found")
-						}
-
-						// get id of the return rule
-						id := []string{
-							location + "/print",
-							"=.proplist=.id",
-							"?chain=" + s.Field(chain.Index[0]).Interface().(string),
-							"?action=return",
-						}
-
-						detail, err := c.RunArgs(id)
-						if err != nil {
-							return err
-						}
-
-						// add place before id if a matching comment is found
-						if len(detail.Re) == 1 {
-							placeBefore.SetString(detail.Re[0].Map[".id"])
-						} else {
-							return errors.New("commitRule - more than one rule returned")
-						}
-					case input.(string) == "top":
-						// place the rule at the top of the chain
-						detail, err := c.Run(location+"/print", "=.proplist=.id")
-						if err != nil {
-							return err
-						}
-
-						// place before first returned rule
-						placeBefore.SetString(detail.Re[0].Map[".id"])
-					case len(input.(string)) > 0:
-						// assume this is a comment to search for
-						// get the id of the specified rule based on comment string match
-						id := []string{
-							location + "/print",
-							"=.proplist=.id",
-							"?comment=" + input.(string),
-						}
-
-						detail, err := c.RunArgs(id)
-						if err != nil {
-							return err
-						}
-
-						// add place before id if a matching comment is found
-						if len(detail.Re) == 1 {
-							placeBefore.SetString(detail.Re[0].Map[".id"])
-						} else {
-							return errors.New("commitRule - more than one rule returned")
-						}
-					}
-				}
-			}
-		}
-
-		// add rule to router
-		_, err = c.Run(GenerateTikSentence(location+"/add", "=", true, in)...)
-		if err != nil {
-			return err
-		}
+		return c.AddRule(in)
 	case 1:
 		return errors.New("commitRule - matching rule exists")
 	default:
 		return errors.New("commitRule - more than one matching rule exists")
 	}
+}
 
-	// return nil if all good
+func (c *Client) AddRule(in interface{}) error {
+	var location string
+
+	s := reflect.ValueOf(in).Elem()
+	t := s.Type()
+
+	// Find the RouterLocation item and get the 'tik' tag value off it to know the routerOS location
+	for i := 0; i < s.NumField(); i++ {
+		field := t.Field(i)
+		if field.Name == "RouterLocation" {
+			location = field.Tag.Get("tik")
+			break
+		}
+	}
+	if len(location) == 0 {
+		return errors.New("no RouterLocation field in structure")
+	}
+
+	// iterate through all fields to find position
+	for i := 0; i < s.NumField(); i++ {
+		field := t.Field(i)
+		if field.Name == "PlaceBeforePosition" {
+			input := s.Field(i).Interface()
+			if len(input.(string)) > 0 {
+				// place before field holder for modification
+				placeBefore := s.FieldByName("PlaceBefore")
+
+				// get id to place before if a position is specified
+				switch {
+				case input.(string) == "return":
+					// get the chain field by name
+					chain, ok := t.FieldByName("Chain")
+					if !ok {
+						return errors.New("commitRule - no chain field found")
+					}
+
+					// get id of the return rule
+					id := []string{
+						location + "/print",
+						"=.proplist=.id",
+						"?chain=" + s.Field(chain.Index[0]).Interface().(string),
+						"?action=return",
+					}
+
+					detail, err := c.RunArgs(id)
+					if err != nil {
+						return err
+					}
+
+					// add place before id if a matching comment is found
+					if len(detail.Re) == 1 {
+						placeBefore.SetString(detail.Re[0].Map[".id"])
+					} else {
+						return errors.New("commitRule - more than one rule returned")
+					}
+				case input.(string) == "top":
+					// place the rule at the top of the chain
+					detail, err := c.Run(location+"/print", "=.proplist=.id")
+					if err != nil {
+						return err
+					}
+
+					// place before first returned rule
+					placeBefore.SetString(detail.Re[0].Map[".id"])
+				case len(input.(string)) > 0:
+					// assume this is a comment to search for
+					// get the id of the specified rule based on comment string match
+					id := []string{
+						location + "/print",
+						"=.proplist=.id",
+						"?comment=" + input.(string),
+					}
+
+					detail, err := c.RunArgs(id)
+					if err != nil {
+						return err
+					}
+
+					// add place before id if a matching comment is found
+					if len(detail.Re) == 1 {
+						placeBefore.SetString(detail.Re[0].Map[".id"])
+					} else {
+						return errors.New("commitRule - more than one rule returned")
+					}
+				}
+			}
+		}
+	}
+
+	// add rule to router
+	if _, err := c.Run(GenerateTikSentence(location+"/add", "=", true, in)...); err != nil {
+		return err
+	}
 	return nil
 }
 

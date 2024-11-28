@@ -2,6 +2,7 @@ package gotik
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -33,6 +34,22 @@ func (c *Client) RemoveIPv4FilterRule(id string) error {
 		return ErrMissingId
 	}
 	_, err := c.Run("/ip/firewall/filter/remove", "=.id="+id)
+	return err
+}
+
+func (c *Client) EnableIPv4FilterRule(id string) error {
+	if len(id) == 0 {
+		return ErrMissingId
+	}
+	_, err := c.Run("/ip/firewall/filter/enable", "=.id="+id)
+	return err
+}
+
+func (c *Client) DisableIPv4FilterRule(id string) error {
+	if len(id) == 0 {
+		return ErrMissingId
+	}
+	_, err := c.Run("/ip/firewall/filter/disable", "=.id="+id)
 	return err
 }
 
@@ -90,4 +107,28 @@ func (r *IPv4FilterRule) String() string {
 		a = append(a, fmt.Sprintf("comment=%s", r.Comment))
 	}
 	return strings.Join(a, " ")
+}
+
+func IPv4RuleCompareEq(a, b IPv4FilterRule, propsToIgnore []string) bool {
+	ignoreMap := make(map[string]struct{}, len(propsToIgnore))
+	for _, prop := range propsToIgnore {
+		ignoreMap[prop] = struct{}{}
+	}
+	// Always ignore these fields
+	ignoreMap["ID"] = struct{}{}
+	ignoreMap["RouterLocation"] = struct{}{}
+	ignoreMap["PlaceBeforePosition"] = struct{}{}
+
+	va := reflect.ValueOf(a)
+	vb := reflect.ValueOf(b)
+	for i := 0; i < va.NumField(); i++ {
+		field := va.Type().Field(i).Name
+		if _, ignore := ignoreMap[field]; ignore {
+			continue
+		}
+		if !reflect.DeepEqual(va.Field(i).Interface(), vb.Field(i).Interface()) {
+			return false
+		}
+	}
+	return true
 }

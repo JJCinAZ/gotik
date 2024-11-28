@@ -6,25 +6,6 @@ import (
 	"time"
 )
 
-type RadiusServer struct {
-	ID                 string        `json:"id"`
-	AccountingBackup   bool          `json:"accounting_backup"`
-	AccountingPort     int           `json:"accounting_port"`
-	Address            string        `json:"address"`
-	AuthenticationPort int           `json:"authentication_port"`
-	CalledId           string        `json:"called_id"`
-	Certificate        string        `json:"certificate"`
-	Comment            string        `json:"comment"`
-	Disabled           bool          `json:"disabled"`
-	Domain             string        `json:"domain"`
-	Protocol           string        `json:"protocol"`
-	Realm              string        `json:"realm"`
-	Secret             string        `json:"secret"`
-	Service            []string      `json:"service"`
-	SrcAddress         string        `json:"src_address"`
-	Timeout            time.Duration `json:"timeout"`
-}
-
 func (e *RadiusServer) String() string {
 	flags := ' '
 	if e.Disabled {
@@ -136,4 +117,46 @@ func (c *Client) RemoveRadius(id string) error {
 		}
 	}
 	return nil
+}
+
+// GetAAA returns the User AAA settings
+func (c *Client) GetAAA() (AAA, error) {
+	var entry AAA
+	detail, err := c.RunCmd("/user/aaa/print")
+	if err == nil {
+		for k, v := range detail.Re[0].Map {
+			switch k {
+			case "accounting":
+				entry.Accounting = parseBool(v)
+			case "use-radius":
+				entry.UseRadius = parseBool(v)
+			case "interim-update":
+				entry.InterimUpdate = parseDuration(v)
+			case "default-group":
+				entry.DefaultGroup = v
+			case "exclude-groups":
+				entry.ExcludeGroups = strings.Split(v, ",")
+			}
+		}
+	}
+	return entry, nil
+}
+
+func (c *Client) SetAAA(a AAA) (string, error) {
+	parts := make([]string, 0, 10)
+	parts = append(parts, "/user/aaa/set")
+	parts = append(parts, fmt.Sprintf("=use-radius=%t", a.UseRadius))
+	parts = append(parts, fmt.Sprintf("=accounting=%t", a.Accounting))
+	if a.InterimUpdate > 0 {
+		parts = append(parts, fmt.Sprintf("=interim-update=%s", a.InterimUpdate.Round(time.Millisecond).String()))
+	}
+	if len(a.DefaultGroup) > 0 {
+		parts = append(parts, fmt.Sprintf("=default-group=%s", a.DefaultGroup))
+	}
+	parts = append(parts, fmt.Sprintf("=exclude-groups=%s", strings.Join(a.ExcludeGroups, ",")))
+	reply, err := c.Run(parts...)
+	if err == nil {
+		return reply.Done.Map["ret"], nil
+	}
+	return "", err
 }
