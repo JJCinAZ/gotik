@@ -1,6 +1,6 @@
 module github.com/jjcinaz/gotik
 
-go 1.23
+go 1.23.3
 
 require (
 	github.com/bramvdbogaerde/go-scp v1.5.0
