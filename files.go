@@ -1,6 +1,8 @@
 package gotik
 
-import "time"
+import (
+	"time"
+)
 
 type File struct {
 	ID             string    `json:"id"`
@@ -39,4 +41,31 @@ func (c *Client) GetAllFiles() ([]File, error) {
 		list = append(list, parseFile(re.Map))
 	}
 	return list, nil
+}
+
+func (c *Client) AddFile(name, contents string) error {
+	if c.majorVersion > 7 || (c.majorVersion == 7 && c.minorVersion >= 9) {
+		_, err := c.Run("/file/add", "=name="+name, "type=file", "=contents="+contents)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return ErrVersionTooOld
+}
+
+func (c *Client) RemoveFileByName(name string) error {
+	_, err := c.Run("/file/remove", "=name="+name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) RemoveFileByID(id string) error {
+	_, err := c.Run("/file/remove", "=.id="+id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -4,6 +4,40 @@ import (
 	"fmt"
 )
 
+type Package struct {
+	Name      string `json:"name" tik:"name"`
+	Disabled  bool   `json:"disabled" tik:"disabled"`
+	Version   string `json:"version" tik:"version"`
+	BuildTime string `json:"build-time" tik:"build-time"`
+	Scheduled string `json:"scheduled" tik:"scheduled"`
+	Bundle    string `json:"bundle" tik:"bundle"`
+}
+
+func parsePackage(props map[string]string) Package {
+	entry := Package{
+		Name:      props["name"],
+		Disabled:  parseBool(props["disabled"]),
+		Version:   props["version"],
+		BuildTime: props["build-time"],
+		Scheduled: props["scheduled"],
+		Bundle:    props["bundle"],
+	}
+	return entry
+}
+
+func (c *Client) GetPackages() ([]Package, error) {
+	entries := make([]Package, 0)
+	detail, err := c.Run("/system/package/print")
+	if err == nil {
+		for i := range detail.Re {
+			entries = append(entries, parsePackage(detail.Re[i].Map))
+		}
+	} else {
+		entries = nil
+	}
+	return entries, err
+}
+
 func parsePackageUpdate(props map[string]string) PackageUpdate {
 	entry := PackageUpdate{
 		Channel:   props["channel"],
@@ -97,7 +131,9 @@ func (c *Client) DownloadUpdates() (info PackageUpdate, err error) {
 // The function will not return until the download is complete or fails so this function may take a long time
 // to execute based on the speed at which the target device can download from mikrotik.com.
 // The final status message will be returned in the info.Status variable.  For example:
-//   routeros.PackageUpdate{Channel:"long-term", Installed:"6.43.8", Latest:"6.46.8", Status:"Downloaded, rebooting..."}
+//
+//	routeros.PackageUpdate{Channel:"long-term", Installed:"6.43.8", Latest:"6.46.8", Status:"Downloaded, rebooting..."}
+//
 // Note that while there is still an open handle to the router, the router rebooted and further connection
 // is no longer possible.  The router handle should be closed immediately after calling this function
 // and getting a successful return.

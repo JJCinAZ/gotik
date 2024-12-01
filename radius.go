@@ -11,7 +11,9 @@ func (e *RadiusServer) String() string {
 	if e.Disabled {
 		flags = 'X'
 	}
-	return fmt.Sprintf("%c %s: %s %s %s", flags, e.Service, e.Address, e.Secret, e.Comment)
+	return fmt.Sprintf("%c %s ports=%d/%d secret=%s realm=%s src=%s services=%v %s", flags,
+		e.Address, e.AuthenticationPort, e.AccountingPort, e.Secret, e.Realm, e.SrcAddress,
+		e.Service, e.Comment)
 }
 
 func parseRadius(props map[string]string) RadiusServer {
@@ -24,13 +26,17 @@ func parseRadius(props map[string]string) RadiusServer {
 		CalledId:           props["called-id"],
 		Certificate:        props["certificate"],
 		Comment:            props["comment"],
-		Disabled:           parseBool(props[" disabled"]),
+		Disabled:           parseBool(props["disabled"]),
 		Domain:             props["domain"],
 		Protocol:           props["protocol"],
 		Realm:              props["realm"],
 		Secret:             props["secret"],
 		SrcAddress:         props["src-address"],
 		Timeout:            parseDuration(props["timeout"]),
+	}
+	switch props["require-message-auth"] {
+	case "yes-for-request-resp":
+		entry.RequireMessageAuth = true
 	}
 	entry.Service = strings.Split(props["service"], ",")
 	return entry
@@ -96,6 +102,13 @@ func (c *Client) AddRadius(r RadiusServer, placeBefore string) (string, error) {
 	}
 	if r.Timeout > 0 {
 		parts = append(parts, fmt.Sprintf("=timeout=%s", r.Timeout.Round(time.Millisecond).String()))
+	}
+	if (c.majorVersion == 7 && c.minorVersion >= 15) || c.majorVersion > 7 {
+		if r.RequireMessageAuth {
+			parts = append(parts, "=require-message-auth=yes-for-request-resp")
+		} else {
+			parts = append(parts, "=require-message-auth=no")
+		}
 	}
 	if len(placeBefore) > 0 {
 		parts = append(parts, fmt.Sprintf("=place-before=%s", placeBefore))

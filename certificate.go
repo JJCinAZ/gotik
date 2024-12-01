@@ -1,6 +1,9 @@
 package gotik
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Certificate struct {
 	ID              string        `json:".id"`
@@ -83,7 +86,16 @@ func parseCertImportResults(props map[string]string) CertImportResults {
 
 func (c *Client) CertificateImport(name, filename, passphrase string) (CertImportResults, error) {
 	var r CertImportResults
-	detail, err := c.RunCmd("/certificate/import", "=file-name="+filename, "=passphrase="+passphrase, "=name="+name)
+	parts := make([]string, 0)
+	parts = append(parts, "/certificate/import")
+	parts = append(parts, fmt.Sprintf("=file-name=%s", filename))
+	parts = append(parts, fmt.Sprintf("=passphrase=%s", passphrase))
+	if c.majorVersion > 6 || (c.majorVersion == 6 && c.minorVersion >= 47) {
+		if len(name) > 0 {
+			parts = append(parts, fmt.Sprintf("=name=%s", name))
+		}
+	}
+	detail, err := c.Run(parts...)
 	if err == nil {
 		r = parseCertImportResults(detail.Re[0].Map)
 	}

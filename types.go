@@ -397,4 +397,5 @@ type RadiusServer struct {
 	Service            []string      `tik:"service" json:"service"`
 	SrcAddress         string        `tik:"src-address" json:"src_address"`
 	Timeout            time.Duration `tik:"timeout" json:"timeout"`
+	RequireMessageAuth bool          `tik:"require-message-auth" json:"require_message_auth"`
 }
