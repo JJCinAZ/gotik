@@ -45,6 +45,7 @@ type CertImportResults struct {
 
 func parseCertificate(props map[string]string) Certificate {
 	entry := Certificate{
+		ID:              props[".id"],
 		Name:            props["name"],
 		Issuer:          props["issuer"],
 		DigestAlgorithm: props["digest-algorithm"],
@@ -84,6 +85,11 @@ func parseCertImportResults(props map[string]string) CertImportResults {
 	return entry
 }
 
+func (c *Certificate) String() string {
+	return fmt.Sprintf("%s: cn=%s, issuer=%s, key=%s(%d), san=%s, valid: %d, trusted/expired/revoked=%t/%t/%t",
+		c.Name, c.CN, c.Issuer, c.KeyType, c.KeySize, c.SAN, c.DaysValid, c.Trusted, c.Expired, c.Revoked)
+}
+
 func (c *Client) CertificateImport(name, filename, passphrase string) (CertImportResults, error) {
 	var r CertImportResults
 	parts := make([]string, 0)
@@ -120,4 +126,9 @@ func (c *Client) SetCertificateName(id string, name string) error {
 
 func (c *Client) GetCertificates() ([]Certificate, error) {
 	return c.certPrint()
+}
+
+func (c *Client) RemoveCertificate(id string) error {
+	_, err := c.Run("/certificate/remove", "=.id="+id)
+	return err
 }
