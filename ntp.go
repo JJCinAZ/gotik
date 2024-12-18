@@ -2,7 +2,6 @@ package gotik
 
 import (
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"strings"
 	"time"
 )
@@ -105,7 +104,6 @@ func (c *Client) SetNTPClient(ntp any) error {
 			parts = append(parts, fmt.Sprintf("=server-dns-names=%s", strings.Join(ntp.(NTPClient6).ServerDNSNames, ",")))
 		}
 	}
-	spew.Dump(parts)
 	_, err := c.Run(parts...)
 	return err
 }
