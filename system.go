@@ -104,7 +104,7 @@ func (c *Client) GetSystemId() (string, error) {
 
 func parseLicense(props map[string]string) License {
 	entry := License{
-		SoftwareId: props["softwareid"],
+		SoftwareId: props["software-id"],
 		Level:      parseInt(props["nlevel"]),
 		Features:   props["features"],
 	}
