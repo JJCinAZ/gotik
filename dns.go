@@ -81,8 +81,10 @@ func (c *Client) SetDNS(d DNS) error {
 	if d.QueryTotalTimeout > 0 {
 		parts = append(parts, fmt.Sprintf("=query-total-timeout=%s", d.QueryTotalTimeout.Round(time.Millisecond).String()))
 	}
-	parts = append(parts, fmt.Sprintf("=use-doh-server=%s", d.UseDOHServer))
-	parts = append(parts, fmt.Sprintf("=verify-doh-cert=%t", d.VerifyDOHCert))
+	if c.majorVersion > 6 || (c.majorVersion == 6 && c.minorVersion >= 49) {
+		parts = append(parts, fmt.Sprintf("=use-doh-server=%s", d.UseDOHServer))
+		parts = append(parts, fmt.Sprintf("=verify-doh-cert=%t", d.VerifyDOHCert))
+	}
 	parts = append(parts, fmt.Sprintf("=allow-remote-requests=%t", d.AllowRemoteRequests))
 	parts = append(parts, fmt.Sprintf("=servers=%s", strings.Join(d.Servers, ",")))
 	_, err := c.Run(parts...)
