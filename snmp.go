@@ -5,6 +5,37 @@ import (
 	"strings"
 )
 
+type SNMPCommunity struct {
+	ID                     string   `tik:".id"`
+	Disabled               bool     `tik:"disabled"`
+	Default                bool     `tik:"default"`
+	Comment                string   `tik:"comment"`
+	Name                   string   `tik:"name"`
+	Addresses              []string `tik:"addresses"` // list of CIDRs (v4 or v6)
+	ReadAccess             bool     `tik:"read-access"`
+	WriteAccess            bool     `tik:"write-access"`
+	AuthenticationProtocol string   `tik:"authentication-protocol"` // MD5 or SHA1 (or blank)
+	AuthenticationPassword string   `tik:"authentication-password"`
+	EncryptionProtocol     string   `tik:"encryption-protocol"` // AES or DES (or blank)
+	EncryptionPassword     string   `tik:"encryption-password"`
+	Security               string   `tik:"security"` // none, authorized, or private
+}
+
+type SNMP struct {
+	Contact        string   `tik:"contact"`
+	Enabled        bool     `tik:"enabled"`
+	EngineId       string   `tik:"engine-id"`        // For 7.10 or newer, this is the hexidecimal string and is read-only
+	EngineIdSuffix string   `tik:"engine-id-suffix"` // only for 7.10 or newer
+	Location       string   `tik:"location"`
+	SrcAddress     string   `tik:"src-address"` // defaults to "::"
+	TrapCommunity  string   `tik:"trap-community"`
+	TrapGenerators []string `tik:"trap-generators"` // possible values: 'interfaces', 'start-trap', 'temp-exception'
+	TrapInterfaces []string `tik:"trap-interfaces"` // list of interface names separated by commas or "all"
+	TrapTarget     string   `tik:"trap-target"`     // list of IP addresses separated by commas (can be IPv4 or IPv6)
+	TrapVersion    string   `tik:"trap-version"`    // 1, 2, or 3
+	VRF            string   `tik:"vrf"`             // Only 7.3 or newer
+}
+
 func (c *SNMPCommunity) String() string {
 	flags := ' '
 	if c.Disabled {
@@ -85,9 +116,7 @@ func (community *SNMPCommunity) parter() []string {
 	if len(community.Addresses) > 0 {
 		parts = append(parts, fmt.Sprintf("=addresses=%s", strings.Join(community.Addresses, ",")))
 	}
-	if len(community.Comment) > 0 {
-		parts = append(parts, fmt.Sprintf("=comment=%s", community.Comment))
-	}
+	parts = append(parts, fmt.Sprintf("=comment=%s", community.Comment))
 	if len(community.Name) > 0 {
 		parts = append(parts, fmt.Sprintf("=name=%s", community.Name))
 	}
@@ -124,4 +153,70 @@ func (c *Client) RemoveSNMPCommunity(id string) error {
 		}
 	}
 	return nil
+}
+
+func parseSNMP(props map[string]string) SNMP {
+	entry := SNMP{
+		Contact:        props["contact"],
+		Enabled:        parseBool(props["enabled"]),
+		EngineId:       props["engine-id"],
+		EngineIdSuffix: props["engine-id-suffix"],
+		Location:       props["location"],
+		SrcAddress:     props["src-address"],
+		TrapCommunity:  props["trap-community"],
+		TrapGenerators: strings.Split(props["trap-generators"], ","),
+		TrapInterfaces: strings.Split(props["trap-interfaces"], ","),
+		TrapTarget:     props["trap-target"],
+		TrapVersion:    props["trap-version"],
+		VRF:            props["vrf"],
+	}
+	return entry
+}
+
+// GetSNMP returns the DNS settings
+func (c *Client) GetSNMP() (SNMP, error) {
+	detail, err := c.RunCmd("/snmp/print")
+	if err == nil {
+		return parseSNMP(detail.Re[0].Map), nil
+	}
+	return SNMP{}, err
+}
+
+// SetSNMP sets the SNMP settings.  Note that any communities must have been added already.
+func (c *Client) SetSNMP(s SNMP) error {
+	parts := make([]string, 0, 10)
+	parts = append(parts, "/snmp/set")
+	if s.Enabled {
+		parts = append(parts, "=enabled=yes")
+	} else {
+		parts = append(parts, "=enabled=no")
+	}
+	parts = append(parts, fmt.Sprintf("=contact=%s", s.Contact))
+	parts = append(parts, fmt.Sprintf("=location=%s", s.Location))
+	parts = append(parts, fmt.Sprintf("=trap-version=%s", s.TrapVersion))
+	parts = append(parts, fmt.Sprintf("=trap-community=%s", s.TrapCommunity))
+	parts = append(parts, fmt.Sprintf("=trap-target=%s", s.TrapTarget))
+	parts = append(parts, fmt.Sprintf("=trap-generators=%s", strings.Join(s.TrapGenerators, ",")))
+	if len(s.SrcAddress) > 0 {
+		parts = append(parts, fmt.Sprintf("=src-address=%s", s.SrcAddress))
+	} else {
+		parts = append(parts, "=src-address=::")
+	}
+	if c.majorVersion > 7 || (c.majorVersion == 7 && c.minorVersion >= 3) {
+		if len(s.VRF) > 0 {
+			parts = append(parts, fmt.Sprintf("=vrf=%s", s.VRF))
+		} else {
+			parts = append(parts, "=vrf=main")
+		}
+		if len(s.TrapInterfaces) == 0 {
+			parts = append(parts, "=trap-interfaces=all")
+		} else {
+			parts = append(parts, fmt.Sprintf("=trap-interfaces=%s", strings.Join(s.TrapInterfaces, ",")))
+		}
+		parts = append(parts, fmt.Sprintf("=engine-id-suffix=%s", s.EngineIdSuffix))
+	} else {
+		parts = append(parts, fmt.Sprintf("=engine-id=%s", s.EngineId))
+	}
+	_, err := c.Run(parts...)
+	return err
 }
