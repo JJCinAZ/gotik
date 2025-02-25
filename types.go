@@ -399,3 +399,19 @@ type RadiusServer struct {
 	Timeout            time.Duration `tik:"timeout" json:"timeout"`
 	RequireMessageAuth bool          `tik:"require-message-auth" json:"require_message_auth"`
 }
+
+type SNMPCommunity struct {
+	ID                     string   `tik:".id"`
+	Disabled               bool     `tik:"disabled"`
+	Default                bool     `tik:"default"`
+	Comment                string   `tik:"comment"`
+	Name                   string   `tik:"name"`
+	Addresses              []string `tik:"addresses"` // list of CIDRs (v4 or v6)
+	ReadAccess             bool     `tik:"read-access"`
+	WriteAccess            bool     `tik:"write-access"`
+	AuthenticationProtocol string   `tik:"authentication-protocol"` // MD5 or SHA1 (or blank)
+	AuthenticationPassword string   `tik:"authentication-password"`
+	EncryptionProtocol     string   `tik:"encryption-protocol"` // AES or DES (or blank)
+	EncryptionPassword     string   `tik:"encryption-password"`
+	Security               string   `tik:"security"` // none, authorized, or private
+}
