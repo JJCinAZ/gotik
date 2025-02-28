@@ -197,11 +197,7 @@ func (c *Client) SetSNMP(s SNMP) error {
 	parts = append(parts, fmt.Sprintf("=trap-community=%s", s.TrapCommunity))
 	parts = append(parts, fmt.Sprintf("=trap-target=%s", s.TrapTarget))
 	parts = append(parts, fmt.Sprintf("=trap-generators=%s", strings.Join(s.TrapGenerators, ",")))
-	if len(s.SrcAddress) > 0 {
-		parts = append(parts, fmt.Sprintf("=src-address=%s", s.SrcAddress))
-	} else {
-		parts = append(parts, "=src-address=::")
-	}
+	parts = append(parts, fmt.Sprintf("=src-address=%s", s.SrcAddress))
 	if c.majorVersion > 7 || (c.majorVersion == 7 && c.minorVersion >= 3) {
 		if len(s.VRF) > 0 {
 			parts = append(parts, fmt.Sprintf("=vrf=%s", s.VRF))
