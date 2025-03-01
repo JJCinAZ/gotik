@@ -102,7 +102,7 @@ func (c *Client) UpdateSNMPCommunity(community SNMPCommunity) (string, error) {
 	}
 	parts := make([]string, 0)
 	parts = append(parts, "/snmp/community/set", "=.id="+community.ID)
-	parts = append(parts, community.parter()...)
+	parts = append(parts, community.parter(c)...)
 	reply, err := c.Run(parts...)
 	if err == nil {
 		return reply.Done.Map["ret"], nil
@@ -110,13 +110,15 @@ func (c *Client) UpdateSNMPCommunity(community SNMPCommunity) (string, error) {
 	return "", err
 }
 
-func (community *SNMPCommunity) parter() []string {
+func (community *SNMPCommunity) parter(c *Client) []string {
 	var parts []string
-	parts = append(parts, fmt.Sprintf("=disabled=%t", community.Disabled))
+	if c.majorVersion > 6 || (c.majorVersion == 6 && c.minorVersion >= 46) {
+		parts = append(parts, fmt.Sprintf("=disabled=%t", community.Disabled))
+		parts = append(parts, fmt.Sprintf("=comment=%s", community.Comment))
+	}
 	if len(community.Addresses) > 0 {
 		parts = append(parts, fmt.Sprintf("=addresses=%s", strings.Join(community.Addresses, ",")))
 	}
-	parts = append(parts, fmt.Sprintf("=comment=%s", community.Comment))
 	if len(community.Name) > 0 {
 		parts = append(parts, fmt.Sprintf("=name=%s", community.Name))
 	}
