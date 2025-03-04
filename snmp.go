@@ -82,7 +82,7 @@ func (c *Client) GetSNMPCommunities() ([]SNMPCommunity, error) {
 func (c *Client) AddSNMPCommunity(community SNMPCommunity) (string, error) {
 	parts := make([]string, 0)
 	parts = append(parts, "/snmp/community/add")
-	parts = append(parts, community.parter()...)
+	parts = append(parts, community.parter(c)...)
 	reply, err := c.Run(parts...)
 	if err == nil {
 		return reply.Done.Map["ret"], nil
