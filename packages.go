@@ -38,6 +38,21 @@ func (c *Client) GetPackages() ([]Package, error) {
 	return entries, err
 }
 
+// IsPackageEnabled returns true if the package is enabled, false if it is disabled or not found.
+// The name is case sensitive.
+func (c *Client) IsPackageEnabled(name string) (bool, error) {
+	list, err := c.GetPackages()
+	if err != nil {
+		return false, err
+	}
+	for _, p := range list {
+		if p.Name == name {
+			return !p.Disabled, nil
+		}
+	}
+	return false, nil
+}
+
 func parsePackageUpdate(props map[string]string) PackageUpdate {
 	entry := PackageUpdate{
 		Channel:   props["channel"],
