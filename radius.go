@@ -69,12 +69,8 @@ func (c *Client) AddRadius(r RadiusServer, placeBefore string) (string, error) {
 	parts := make([]string, 0, 10)
 	parts = append(parts, "/radius/add")
 	parts = append(parts, fmt.Sprintf("=address=%s", r.Address))
-	parts = append(parts, fmt.Sprintf("=protocol=%s", r.Protocol))
 	if len(r.CalledId) > 0 {
 		parts = append(parts, fmt.Sprintf("=called-id=%s", r.CalledId))
-	}
-	if r.Protocol == "radsec" && len(r.Certificate) > 0 {
-		parts = append(parts, fmt.Sprintf("=certificate=%s", r.Certificate))
 	}
 	if len(r.Comment) > 0 {
 		parts = append(parts, fmt.Sprintf("=comment=%s", r.Comment))
@@ -102,6 +98,12 @@ func (c *Client) AddRadius(r RadiusServer, placeBefore string) (string, error) {
 	}
 	if r.Timeout > 0 {
 		parts = append(parts, fmt.Sprintf("=timeout=%s", r.Timeout.Round(time.Millisecond).String()))
+	}
+	if (c.majorVersion == 6 && c.minorVersion >= 44) || c.majorVersion > 6 {
+		parts = append(parts, fmt.Sprintf("=protocol=%s", r.Protocol))
+		if r.Protocol == "radsec" && len(r.Certificate) > 0 {
+			parts = append(parts, fmt.Sprintf("=certificate=%s", r.Certificate))
+		}
 	}
 	if (c.majorVersion == 7 && c.minorVersion >= 15) || c.majorVersion > 7 {
 		if r.RequireMessageAuth {

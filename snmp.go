@@ -199,20 +199,22 @@ func (c *Client) SetSNMP(s SNMP) error {
 	parts = append(parts, fmt.Sprintf("=trap-community=%s", s.TrapCommunity))
 	parts = append(parts, fmt.Sprintf("=trap-target=%s", s.TrapTarget))
 	parts = append(parts, fmt.Sprintf("=trap-generators=%s", strings.Join(s.TrapGenerators, ",")))
-	if s.SrcAddress == "" {
-		// Once src-address is set, it cannot be set back to blank, so we either have to pick
-		// 0.0.0.0 or :: based on whether ipv6 is enabled
-		hasIPv6, err := c.IsPackageEnabled("ipv6")
-		if err != nil {
-			return err
+	if c.majorVersion > 6 || (c.majorVersion == 6 && c.minorVersion >= 44) {
+		if s.SrcAddress == "" || s.SrcAddress == "::" {
+			// Once src-address is set, it cannot be set back to blank, so we either have to pick
+			// 0.0.0.0 or :: based on whether ipv6 is enabled
+			hasIPv6, err := c.IsPackageEnabled("ipv6")
+			if err != nil {
+				return err
+			}
+			if hasIPv6 {
+				s.SrcAddress = "::"
+			} else {
+				s.SrcAddress = "0.0.0.0"
+			}
 		}
-		if hasIPv6 {
-			s.SrcAddress = "::"
-		} else {
-			s.SrcAddress = "0.0.0.0"
-		}
+		parts = append(parts, fmt.Sprintf("=src-address=%s", s.SrcAddress))
 	}
-	parts = append(parts, fmt.Sprintf("=src-address=%s", s.SrcAddress))
 	if c.majorVersion > 7 || (c.majorVersion == 7 && c.minorVersion >= 3) {
 		if len(s.VRF) > 0 {
 			parts = append(parts, fmt.Sprintf("=vrf=%s", s.VRF))
