@@ -226,6 +226,8 @@ func (c *Client) SetSNMP(s SNMP) error {
 		} else {
 			parts = append(parts, fmt.Sprintf("=trap-interfaces=%s", strings.Join(s.TrapInterfaces, ",")))
 		}
+	}
+	if c.majorVersion > 7 || (c.majorVersion == 7 && c.minorVersion >= 10) {
 		parts = append(parts, fmt.Sprintf("=engine-id-suffix=%s", s.EngineIdSuffix))
 	} else {
 		parts = append(parts, fmt.Sprintf("=engine-id=%s", s.EngineId))
