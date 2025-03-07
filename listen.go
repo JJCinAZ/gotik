@@ -71,6 +71,8 @@ func (l *ListenReply) processSentence(sen *proto.Sentence) (bool, error) {
 	switch sen.Word {
 	case "!re":
 		l.reC <- sen
+	case "!empty":
+		// !empty was added with ROS 7.18; just ignore it for async
 	case "!done":
 		l.Done = sen
 		return true, nil

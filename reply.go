@@ -56,6 +56,10 @@ func (r *Reply) processSentence(sen *proto.Sentence) (bool, error) {
 	case "!done":
 		r.Done = sen
 		return true, nil
+	case "!empty":
+		// New word added to ROS 7.18; make sure we return an empty reply slice
+		// Note that "!done" will follow "!empty"
+		r.Re = make([]*proto.Sentence, 0)
 	case "!trap":
 		return false, &DeviceError{sen}
 	case "!fatal":
