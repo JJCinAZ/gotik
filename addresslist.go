@@ -1,7 +1,9 @@
 package gotik
 
 import (
+	"errors"
 	"fmt"
+	"net/netip"
 	"strings"
 	"time"
 )
@@ -43,18 +45,53 @@ func (entry *AddressList) parse(props map[string]string) {
 	}
 }
 
-// Returns a list of entries in an IPv4 address list
+// GetIPv4AddressList returns a list of entries in an IPv4 address list
 func (c *Client) GetIPv4AddressList(listname string) ([]AddressList, error) {
-	return c.getAddressList("/ip", listname)
+	return c.GetAddressList("ip", listname)
 }
 
-// Returns a list of entries in an IPv4 address list
+// GetIPv6AddressList returns a list of entries in an IPv4 address list
 func (c *Client) GetIPv6AddressList(listname string) ([]AddressList, error) {
-	return c.getAddressList("/ipv6", listname)
+	return c.GetAddressList("ipv6", listname)
 }
 
-func (c *Client) getAddressList(cmdprefix string, listname string) ([]AddressList, error) {
-	detail, err := c.Run(cmdprefix+"/firewall/address-list/print", "?=list="+listname)
+// GetIPv4AddressListEntry returns an entry in an IPv4 address list
+func (c *Client) GetIPv4AddressListEntry(listname string, address string) (AddressList, error) {
+	return c.GetAddressListEntry("ip", listname, address)
+}
+
+// GetIPv6AddressListEntry returns an entry in an IPv4 address list
+func (c *Client) GetIPv6AddressListEntry(listname string, address string) (AddressList, error) {
+	return c.GetAddressListEntry("ipv6", listname, address)
+}
+
+// GetAddressListEntry returns an entry in an address list.  The version must be "ipv4" or "ipv6"
+func (c *Client) GetAddressListEntry(version string, listname string, address string) (AddressList, error) {
+	var (
+		err    error
+		detail *Reply
+		entry  AddressList
+	)
+	if version, err = deriveIPversion(version, address); err != nil {
+		return entry, err
+	}
+	detail, err = c.Run("/"+version+"/firewall/address-list/print", "?=list="+listname, "?=address="+address)
+	if err != nil {
+		return entry, err
+	}
+	entry.parse(detail.Re[0].Map)
+	return entry, nil
+}
+
+func (c *Client) GetAddressList(version string, listname string) ([]AddressList, error) {
+	var (
+		err    error
+		detail *Reply
+	)
+	if version, err = deriveIPversion(version, ""); err != nil {
+		return nil, err
+	}
+	detail, err = c.Run("/"+version+"/firewall/address-list/print", "?=list="+listname)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +126,7 @@ func (c *Client) AuditIPv4AddressList(listname string, list []AddressList, goodL
 			targetList[strings.ToLower(k)] = v
 		}
 	}
-	return c.auditAddressList("/ip", listname, list, targetList, applyAudits)
+	return c.auditAddressList("ip", listname, list, targetList, applyAudits)
 }
 
 func (c *Client) AuditIPv6AddressList(listname string, list []AddressList, goodList map[string]string, applyAudits bool) ([]AddressListAudit, error) {
@@ -98,16 +135,16 @@ func (c *Client) AuditIPv6AddressList(listname string, list []AddressList, goodL
 	for k, v := range goodList {
 		targetList[strings.ToLower(k)] = v
 	}
-	return c.auditAddressList("/ipv6", listname, list, targetList, applyAudits)
+	return c.auditAddressList("ipv6", listname, list, targetList, applyAudits)
 }
 
-func (c *Client) auditAddressList(cmdprefix string, listname string, list []AddressList, goodList map[string]string, applyAudits bool) ([]AddressListAudit, error) {
+func (c *Client) auditAddressList(version string, listname string, list []AddressList, goodList map[string]string, applyAudits bool) ([]AddressListAudit, error) {
 	var err error
 	if len(listname) == 0 {
 		return nil, fmt.Errorf("must supply a list name")
 	}
 	if list == nil {
-		if list, err = c.getAddressList(cmdprefix, listname); err != nil {
+		if list, err = c.GetAddressList(version, listname); err != nil {
 			return nil, err
 		}
 	}
@@ -145,12 +182,12 @@ func (c *Client) auditAddressList(cmdprefix string, listname string, list []Addr
 		for _, e := range audits {
 			switch e.Operation {
 			case 'A':
-				_, err = c.Run(GenerateTikSentence(cmdprefix+"/firewall/address-list/add", "=", false,
+				_, err = c.Run(GenerateTikSentence("/"+version+"/firewall/address-list/add", "=", false,
 					&AddressList{List: listname, Address: e.Address, Comment: e.Comment})...)
 			case 'U':
-				_, err = c.Run(cmdprefix+"/firewall/address-list/set", "=.id="+e.ID, "=comment="+e.Comment)
+				_, err = c.Run("/"+version+"/firewall/address-list/set", "=.id="+e.ID, "=comment="+e.Comment)
 			case 'D':
-				_, err = c.Run(cmdprefix+"/firewall/address-list/remove", "=.id="+e.ID)
+				_, err = c.Run("/"+version+"/firewall/address-list/remove", "=.id="+e.ID)
 			}
 			if err != nil {
 				break
@@ -158,4 +195,109 @@ func (c *Client) auditAddressList(cmdprefix string, listname string, list []Addr
 		}
 	}
 	return audits, err
+}
+
+// deriveIPversion will return "ip" or "ipv6" if the version isn't already one of those two values
+// or if the supplied ip is an IPv4 or IPv6 address or subnet/prefix.
+func deriveIPversion(version string, ip string) (string, error) {
+	if version == "ip" || version == "ipv6" {
+		return version, nil
+	}
+	if len(ip) == 0 {
+		return "", errors.New("version must be ip or ipv6")
+	}
+	i := strings.LastIndexByte(ip, '/')
+	if i < 0 {
+		// not a prefix or subnet, so see if it's an IP address
+		if a, err := netip.ParseAddr(ip); err == nil {
+			if a.Is6() {
+				return "ipv6", nil
+			}
+			return "ip", nil
+		} else {
+			return "", ErrIPorPrefixNotValid
+		}
+	}
+	// Must be a subnet or prefix
+	if a, err := netip.ParsePrefix(ip); err == nil {
+		if a.Addr().Is6() {
+			return "ipv6", nil
+		} else {
+			return "ip", nil
+		}
+	} else {
+		return "", ErrIPorPrefixNotValid
+	}
+}
+
+// AddIPv4AddressListEntry will add an entry to the named IP address list.  Address can be an IP, subnet, or DNS name.
+// Timeout can be 0 if no timeout, or a sequence of positive decimal numbers, each with optional fraction and a
+// unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+// Comment can be an empty string if no comment is needed.  Disabled is a boolean but must be false if duration is not 0.
+func (c *Client) AddIPv4AddressListEntry(listname string, address string, timeout time.Duration, comment string, disabled bool) (*Reply, error) {
+	return c.AddAddressListEntry("ip", listname, address, timeout, comment, disabled)
+}
+
+// AddIPv6AddressListEntry will add an entry to the named IP address list.  Address can be an IP, subnet, or DNS name.
+// Timeout can be 0 if no timeout, or a sequence of positive decimal numbers, each with optional fraction and a
+// unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+// Comment can be an empty string if no comment is needed.  Disabled is a boolean but must be false if duration is not 0.
+func (c *Client) AddIPv6AddressListEntry(listname string, address string, timeout time.Duration, comment string, disabled bool) (*Reply, error) {
+	return c.AddAddressListEntry("ipv6", listname, address, timeout, comment, disabled)
+}
+
+// AddAddressListEntry will add an entry to the named IP address list.  Address can be an IP, subnet, or DNS name.
+// Timeout can be 0 if no timeout, or a sequence of positive decimal numbers, each with optional fraction and a
+// unit suffix, such as "300ms", "-1.5h" or "2h45m". Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+// Comment can be an empty string if no comment is needed.  Disabled is a boolean but must be false if duration is not 0.
+func (c *Client) AddAddressListEntry(version string, listname string, address string, timeout time.Duration, comment string, disabled bool) (*Reply, error) {
+	var (
+		err   error
+		reply *Reply
+	)
+	if version, err = deriveIPversion(version, address); err != nil {
+		return nil, err
+	}
+	reply, err = c.Run(GenerateTikSentence("/"+version+"/firewall/address-list/add", "=", false,
+		&AddressList{List: listname, Address: address, Timeout: timeout, Comment: comment, Disabled: disabled})...)
+	if err != nil {
+		if errors.Is(err, &ErrExists) {
+			// Already exists, update
+			var entry AddressList
+			entry, err = c.GetAddressListEntry(version, listname, address)
+			if err != nil {
+				return nil, err
+			}
+			reply, err = c.Run("/"+version+"/firewall/address-list/set", "=.id="+entry.ID, "=comment="+comment,
+				"=timeout="+timeout.Round(time.Second).String(), "=disabled="+fmt.Sprint(disabled))
+			if err != nil {
+				return reply, err
+			}
+		} else {
+			return reply, err
+		}
+	}
+	return reply, err
+}
+
+func (c *Client) RemoveAddressListEntry(version string, listname string, address string) error {
+	var (
+		err   error
+		entry AddressList
+	)
+	if len(listname) == 0 {
+		return errors.New("missing listname")
+	}
+	if len(address) == 0 {
+		return errors.New("missing address")
+	}
+	if version, err = deriveIPversion(version, address); err != nil {
+		return err
+	}
+	entry, err = c.GetAddressListEntry(version, listname, address)
+	if err != nil {
+		return err
+	}
+	_, err = c.Run("/"+version+"/firewall/address-list/remove", "=.id="+entry.ID)
+	return err
 }

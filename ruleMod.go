@@ -394,12 +394,12 @@ func GenerateTikSentence(selector string, operator string, includePosition bool,
 				if input.(int) > 0 {
 					sentence = append(sentence, operator+tag+"="+strconv.Itoa(input.(int)))
 				}
-			case "time.Duration":
+			case "Duration":
 				d := input.(time.Duration)
 				if d != 0 {
 					sentence = append(sentence, operator+tag+"="+d.Round(time.Second).String())
 				}
-			case "time.Time":
+			case "Time":
 				tm := input.(time.Time).Format("Jan/02/2006 15:04:05")
 				sentence = append(sentence, operator+tag+"="+tm)
 			}

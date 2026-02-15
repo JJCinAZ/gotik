@@ -9,6 +9,10 @@ import (
 var (
 	errAlreadyAsync   = errors.New("Async() has already been called")
 	errAsyncLoopEnded = errors.New("Async() loop has ended - probably read error")
+	ErrExists         = DeviceError{&proto.Sentence{
+		Word: "!trap",
+		List: []proto.Pair{{Key: "message", Value: "failure: already have such entry"}},
+		Map:  map[string]string{"message": "failure: already have such entry"}}}
 )
 
 // UnknownReplyError records the sentence whose Word is unknown.
@@ -32,4 +36,12 @@ func (err *DeviceError) Error() string {
 		m = "unknown error: " + err.Sentence.String()
 	}
 	return "from RouterOS device: " + m
+}
+
+func (err *DeviceError) Is(target error) bool {
+	t, ok := target.(*DeviceError)
+	if !ok {
+		return false
+	}
+	return err.Sentence.Map["message"] == t.Sentence.Map["message"]
 }
