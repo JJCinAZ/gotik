@@ -46,6 +46,28 @@ type DHCPv4Server struct {
 	AddArp        bool   `json:"addarp"`
 }
 
+type DHCPLease struct {
+	ID             string        `json:"id"`
+	Address        string        `json:"address"`
+	Mac            string        `json:"mac-address"`
+	ActiveMac      string        `json:"active-mac-address"`
+	Comment        string        `json:"comment"`
+	ClientID       string        `json:"client-id"`
+	ActiveClientID string        `json:"active-client-id"`
+	ClassID        string        `json:"class-id"`
+	HostName       string        `json:"host-name"`
+	Server         string        `json:"server"`
+	ActiveServer   string        `json:"active-server"`
+	Status         string        `json:"status"` // waiting, testing, declined, offered, bound, authorizing, conflict
+	Dynamic        bool          `json:"dynamic"`
+	Disabled       bool          `json:"disabled"`
+	Radius         bool          `json:"radius"`
+	Blocked        bool          `json:"blocked"`
+	BlockAccess    bool          `json:"block-access"`
+	ExpiresAfter   time.Duration `json:"expires-after"`
+	LastSeen       time.Duration `json:"last-seen"`
+}
+
 const (
 	InterfaceType6to4            = "6to4"
 	InterfaceTypeBonding         = "bonding"

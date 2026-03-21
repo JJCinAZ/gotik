@@ -81,22 +81,22 @@ func (c *Client) dhcp4ServerPrint(parms ...string) ([]DHCPv4Server, error) {
 	return entries, nil
 }
 
-// Returns a single DHCP Server by name
+// GetDhcp4ServerByIntf returns a single DHCP Server by name
 func (c *Client) GetDhcp4ServerByIntf(intf string) ([]DHCPv4Server, error) {
 	return c.dhcp4ServerPrint("?=interface=" + intf)
 }
 
-// Returns a single DHCP Server by name
+// GetDhcp4ServerByName returns a single DHCP Server by name
 func (c *Client) GetDhcp4ServerByName(name string) ([]DHCPv4Server, error) {
 	return c.dhcp4ServerPrint("?=name=" + name)
 }
 
-// Returns a list of all DHCP Servers
+// GetDhcpv4Servers returns a list of all DHCP Servers
 func (c *Client) GetDhcpv4Servers() ([]DHCPv4Server, error) {
 	return c.dhcp4ServerPrint()
 }
 
-// Add a new DHCPv4 Server
+// AddDhcpv4Server adds a new DHCPv4 Server
 func (c *Client) AddDhcpv4Server(s DHCPv4Server) (string, error) {
 	if len(s.Name) == 0 || len(s.Interface) == 0 || len(s.Pool) == 0 || len(s.LeaseTime) == 0 {
 		return "", fmt.Errorf("invalid DHCPv4 server supplied")
@@ -142,12 +142,12 @@ func (c *Client) dhcp4NetworkPrint(parms ...string) ([]DHCP4Network, error) {
 	return entries, nil
 }
 
-// Returns a list of all DHCP Networks
+// GetDhcpv4Networks returns a list of all DHCP Networks
 func (c *Client) GetDhcpv4Networks() ([]DHCP4Network, error) {
 	return c.dhcp4NetworkPrint()
 }
 
-// Add a new DHCPv4 Network
+// AddDhcpv4Network adds a new DHCPv4 Network
 func (c *Client) AddDhcpv4Network(s DHCP4Network) (string, error) {
 	if len(s.Address) == 0 || len(s.Netmask) == 0 {
 		return "", fmt.Errorf("invalid DHCPv4 network")
@@ -179,4 +179,41 @@ func (c *Client) AddDhcpv4Network(s DHCP4Network) (string, error) {
 		return reply.Done.Map["ret"], nil
 	}
 	return "", err
+}
+
+func parseDhcp4Lease(props map[string]string) DHCPLease {
+	entry := DHCPLease{
+		ID:             props[".id"],
+		Address:        props["address"],
+		Mac:            props["mac-address"],
+		ActiveMac:      props["active-mac-address"],
+		Comment:        props["comment"],
+		ClientID:       props["client-id"],
+		ActiveClientID: props["active-client-id"],
+		ClassID:        props["class-id"],
+		HostName:       props["host-name"],
+		Server:         props["server"],
+		ActiveServer:   props["active-server"],
+		Status:         props["status"],
+		Dynamic:        parseBool(props["dynamic"]),
+		Disabled:       parseBool(props["disabled"]),
+		Radius:         parseBool(props["radius"]),
+		Blocked:        parseBool(props["blocked"]),
+		BlockAccess:    parseBool(props["block-access"]),
+		ExpiresAfter:   parseDuration(props["expires-after"]),
+		LastSeen:       parseDuration(props["last-seen"]),
+	}
+	return entry
+}
+
+// GetDhcpLeases returns a list of all DHCP Leases.  These could be just IPv4 on older versions or both IPv4 and IPv6 on newer versions of RouterOS.
+func (c *Client) GetDhcpLeases() ([]DHCPLease, error) {
+	entries := make([]DHCPLease, 0, 32)
+	detail, err := c.RunCmd("/ip/dhcp-server/lease/print")
+	if err == nil {
+		for i := range detail.Re {
+			entries = append(entries, parseDhcp4Lease(detail.Re[i].Map))
+		}
+	}
+	return entries, nil
 }
