@@ -344,20 +344,32 @@ func (c *Client) GetBridgeInterfaces() ([]Interface, error) {
 	return interfaces, nil
 }
 
-// GetInterfacesOfTypes returns a list of all Bridge interfaces
+// GetInterfacesOfTypes returns a list of all interfaces matching any of the types supplied:
+// bridge, ether, loopback, wlan
+// Pass empty string to get all types
 func (c *Client) GetInterfacesOfTypes(types ...string) ([]Interface, error) {
-	detail, err := c.Run("/interface/print")
+	var (
+		err        error
+		detail     *Reply
+		sentenance []string
+	)
+	if len(types) == 0 {
+		sentenance = []string{"/interface/print"}
+	} else if len(types) == 1 {
+		sentenance = []string{"/interface/print", "?=type=" + types[0]}
+	} else {
+		sentenance = []string{"/interface/print", "?type=" + types[0], "?type=" + types[1], "?#|"}
+		for i := 2; i < len(types); i++ {
+			sentenance = append(sentenance, "?type="+types[i], "?#|")
+		}
+	}
+	detail, err = c.Run(sentenance...)
 	if err != nil {
 		return nil, err
 	}
 	interfaces := make([]Interface, 0, 64)
 	for _, re := range detail.Re {
-		for _, t := range types {
-			if t == re.Map["type"] {
-				interfaces = append(interfaces, parseInterface(re.Map, t))
-				break
-			}
-		}
+		interfaces = append(interfaces, parseInterface(re.Map, "???"))
 	}
 	return interfaces, nil
 }
