@@ -102,6 +102,11 @@ func (c *Client) GetSystemId() (string, error) {
 	return "", err
 }
 
+func (c *Client) SetSystemId(id string) error {
+	_, err := c.RunCmd("/system/identity/set", fmt.Sprintf("=name=%s", id))
+	return err
+}
+
 func parseLicense(props map[string]string) License {
 	entry := License{
 		SoftwareId: props["software-id"],
